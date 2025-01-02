@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Classification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .search-section {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .search-form {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+        }
+        input[type="text"] {
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        .section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .code-item {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background-color: #f8f9fa;
+        }
+        .highlight {
+            background-color: #e7f3fe;
+            padding: 1rem;
+            border-left: 4px solid #1a73e8;
+        }
+        #results-container {
+            display: none;
+        }
+        .error-message {
+            color: #dc3545;
+            margin: 1rem 0;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="search-section">
+            <h1>Product Classification</h1>
+            <form id="searchForm" class="search-form">
+                <input type="text" id="product_name" name="product_name" required placeholder="Enter product name">
+                <button type="submit">Classify Product</button>
+            </form>
+            <div id="errorMessage" class="error-message"></div>
+            <div id="loading" class="loading">Processing...</div>
+        </div>
+
+        <div id="results-container">
+            <!-- Basic Product Information -->
+            <div class="section">
+                <h2>Product Details</h2>
+                <p><strong>Name:</strong> <span id="product-name"></span></p>
+                <p><strong>Type:</strong> <span id="product-type"></span></p>
+                <p><strong>Details:</strong> <span id="product-info"></span></p>
+            </div>
+
+            <!-- Commodity Code Analysis -->
+            <div class="section">
+                <h2>Commodity Code Analysis</h2>
+                
+                <h3>All Matched Commodity Codes:</h3>
+                <div id="matching-codes"></div>
+
+                <h3>Best Match Analysis:</h3>
+                <div id="best-match"></div>
+            </div>
+
+            <!-- HS Code Information -->
+            <div class="section">
+                <h2>Harmonized System (HS) Code Information</h2>
+                <div id="hs-codes-info"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productName = document.getElementById('product_name').value.trim();
+            const errorMessage = document.getElementById('errorMessage');
+            const loading = document.getElementById('loading');
+            const resultsContainer = document.getElementById('results-container');
+            
+            if (!productName) {
+                errorMessage.textContent = 'Please enter a valid product name.';
+                return;
+            }
+
+            errorMessage.textContent = '';
+            loading.style.display = 'block';
+            resultsContainer.style.display = 'none';
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `product_name=${encodeURIComponent(productName)}`
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    errorMessage.textContent = data.error;
+                    return;
+                }
+
+                // Update the DOM with the results
+                document.getElementById('product-name').textContent = data.product_info.name;
+                document.getElementById('product-type').textContent = data.product_info.type;
+                document.getElementById('product-info').textContent = data.product_info.information;
+
+                // Update matching commodity codes
+                const matchingCodesContainer = document.getElementById('matching-codes');
+                matchingCodesContainer.innerHTML = '';
+                if (data.product_info.matching_commodity_info && data.product_info.matching_commodity_info.length > 0) {
+                    data.product_info.matching_commodity_info.forEach(([code, description]) => {
+                        const codeItem = document.createElement('div');
+                        codeItem.className = 'code-item';
+                        codeItem.innerHTML = `
+                            <p><strong>Code:</strong> ${code}</p>
+                            <p><strong>Description:</strong> ${description}</p>
+                        `;
+                        matchingCodesContainer.appendChild(codeItem);
+                    });
+                } else {
+                    matchingCodesContainer.innerHTML = '<p>No matching commodity codes found.</p>';
+                }
+
+                // Update best match
+                const bestMatchContainer = document.getElementById('best-match');
+                if (data.product_info.best_commodity_code) {
+                    bestMatchContainer.innerHTML = `
+                        <div class="highlight">
+                            <p><strong>Best Matching Code:</strong> ${data.product_info.best_commodity_code}</p>
+                            <p><strong>Reasoning:</strong></p>
+                            <p>${data.product_info.best_commodity_reasoning}</p>
+                        </div>
+                    `;
+                } else {
+                    bestMatchContainer.innerHTML = '<p>No best match determined.</p>';
+                }
+
+                // Update HS codes
+                const hsCodesContainer = document.getElementById('hs-codes-info');
+                if (data.product_info.hs_codes && data.product_info.hs_codes.length > 0) {
+                    hsCodesContainer.innerHTML = `
+                        <p><strong>HS Codes:</strong> ${data.product_info.hs_codes.join(', ')}</p>
+                        ${data.product_info.classification_rule ? `<p><strong>Classification Rule:</strong> ${data.product_info.classification_rule}</p>` : ''}
+                    `;
+                } else {
+                    hsCodesContainer.innerHTML = '<p>No HS codes identified.</p>';
+                }
+
+                // Show results
+                resultsContainer.style.display = 'block';
+            } catch (error) {
+                errorMessage.textContent = 'An error occurred while processing your request.';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
