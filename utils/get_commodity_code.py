@@ -60,20 +60,3 @@ def process_product_info(product_info):
         except Exception as e:
             print(f"Error during processing: {e}")
     return product_info
-
-# Load API configuration
-try:
-    config = load_api_keys()
-    if not config.get('openai_api_key'):
-        raise ValueError("OpenAI API key not found in configuration")
-except Exception as e:
-    print(f"Error loading API configuration: {e}")
-
-if __name__ == "__main__":
-    # Example usage if run as a script
-    sample_product_info = {
-        "hs_codes": ["8471.30", "8471.41"]
-    }
-    result = process_product_info(sample_product_info)
-    print("\nProcessed Product Info:")
-    print(json.dumps(result, indent=2))

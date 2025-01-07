@@ -1,5 +1,3 @@
-# config.py
-
 import os
 import logging
 
@@ -9,14 +7,11 @@ logger = logging.getLogger(__name__)
 def load_api_keys():
     """
     Load API keys from environment variables.
-    Returns a dictionary containing all API keys.
+    Returns a dictionary containing the OpenRouter API key.
     """
-    # Define the API keys we need
+    # Only need OpenRouter API key now
     required_keys = {
-        'openai_api_key': 'OPENAI_API_KEY',
-        'claude_api_key': 'CLAUDE_API_KEY',
-        'groq_api_key': 'GROQ_API_KEY',
-        'gemini_api_key': 'GEMINI_API_KEY'
+        'openrouter_api_key': 'OPENROUTER_API_KEY'
     }
     
     config = {}

@@ -1,19 +1,20 @@
-from flask import Flask, jsonify, render_template, request
-from utils.get_hs_code import generate_product_info
+from quart import Quart, jsonify, render_template, request
+from utils.get_hs_code import generate_product_info_async
 from utils.get_commodity_code import process_product_info
 from utils.filter_commodity_code import find_best_commodity_match
 
-app = Flask(__name__)
+app = Quart(__name__)
 
 @app.route("/")
-def index():
+async def index():
     """Render the main search page"""
-    return render_template("index.html")
+    return await render_template("index.html")
 
 @app.route("/process", methods=["POST"])
-def process_product():
+async def process_product():
     """Handle web form submission and return JSON response"""
-    product_name = request.form.get("product_name", "").strip()
+    form = await request.form
+    product_name = form.get("product_name", "").strip()
 
     if not product_name:
         return jsonify({
@@ -21,7 +22,7 @@ def process_product():
         }), 400
 
     # Step 1: Generate initial product info with HS codes
-    product_info = generate_product_info(product_name)
+    product_info = await generate_product_info_async(product_name)
     if not product_info:
         return jsonify({
             "error": "Error processing product information."
@@ -38,7 +39,7 @@ def process_product():
             for code, description in product_info['matching_commodity_info']
         ]
 
-        result = find_best_commodity_match(
+        result = await find_best_commodity_match(
             product_info['type'],
             product_info['information'],
             commodity_codes,
@@ -50,12 +51,11 @@ def process_product():
 
     return jsonify({"product_info": product_info})
 
-# API routes
 @app.route("/api/classify", methods=["POST"])
-def classify_product():
+async def classify_product():
     """API endpoint to classify a product and return its commodity code"""
     try:
-        data = request.get_json()
+        data = await request.get_json()
         if not data or 'product_name' not in data:
             return jsonify({
                 "error": "Product name is required"
@@ -68,7 +68,7 @@ def classify_product():
             }), 400
 
         # Get initial product classification
-        product_info = generate_product_info(product_name)
+        product_info = await generate_product_info_async(product_name)
         if not product_info:
             return jsonify({
                 "error": "Could not classify product"
@@ -85,7 +85,7 @@ def classify_product():
                 for code, description in product_info['matching_commodity_info']
             ]
 
-            result = find_best_commodity_match(
+            result = await find_best_commodity_match(
                 product_info['type'],
                 product_info['information'],
                 commodity_codes,
@@ -116,25 +116,25 @@ def classify_product():
 
 # Error handlers
 @app.errorhandler(404)
-def not_found(error):
+async def not_found(error):
     return jsonify({
         "error": "Resource not found"
     }), 404
 
 @app.errorhandler(405)
-def method_not_allowed(error):
+async def method_not_allowed(error):
     return jsonify({
         "error": "Method not allowed"
     }), 405
 
 @app.errorhandler(400)
-def bad_request(error):
+async def bad_request(error):
     return jsonify({
         "error": "Bad request"
     }), 400
 
 @app.errorhandler(500)
-def internal_server_error(error):
+async def internal_server_error(error):
     return jsonify({
         "error": "Internal server error"
     }), 500
