@@ -57,7 +57,7 @@ Here are the descriptions for each code:
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
                 json={
-                    "model": "openai/gpt-4-turbo-preview",
+                    "model": "openai/gpt-4o-mini",
                     "messages": [{"role": "user", "content": prompt}]
                 }
             ) as response:

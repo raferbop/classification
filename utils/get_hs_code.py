@@ -28,7 +28,7 @@ class HSCodeGenerator:
             }
             # Updated models configuration
             self.models = {
-                "primary": "openai/gpt-3.5-turbo",
+                "primary": "openai/gpt-4o-mini",
                 "alternates": [
                     "meta-llama/llama-3.3-70b-instruct",
                     "anthropic/claude-3.5-haiku",
